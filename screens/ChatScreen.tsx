@@ -1,14 +1,6 @@
 import { FlashList } from '@shopify/flash-list';
-import React, { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Keyboard,
-  KeyboardAvoidingView,
-  Platform,
-  Text,
-  TouchableWithoutFeedback,
-  View,
-} from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, Text, TouchableWithoutFeedback, View, } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { fetchChats } from '../api/chatService';
@@ -22,61 +14,81 @@ const ChatScreen: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [page, setPage] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
-  const [hasMore, setHasMore] = useState(true);
+  const [hasMore, setHasMore] = useState<boolean>(true);
 
   const [tripName, setTripName] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
 
+  const flashListRef = useRef<FlashList<Message>>(null);
+
   useEffect(() => {
     const loadInitial = async () => {
       setLoading(true);
       const response = await fetchChats(0);
-      setMessages(response.chats.slice(0, 7)); 
+      setMessages(response.chats.slice(0, 7)); // Load only 7 msgs initially
       setTripName(response.name);
       setFrom(response.from);
       setTo(response.to);
       setLoading(false);
     };
+
     loadInitial();
   }, []);
 
   const loadOlderMessages = async () => {
     if (loading || !hasMore) return;
-
     setLoading(true);
+
     const nextPage = page + 1;
     const response = await fetchChats(nextPage);
 
     if (response.chats.length === 0) {
       setHasMore(false);
-    } else {
-      setMessages(prev => [...prev, ...response.chats]);
-      setPage(nextPage);
+      setLoading(false);
+      return;
     }
+
+    //Store scroll height before updatng
+    const prevLength = messages.length;
+
+    setMessages((prev) => [...prev, ...response.chats]);
+    setPage(nextPage);
+
+    setTimeout(() => {
+      if (flashListRef.current && prevLength > 0) {
+        flashListRef.current.scrollToIndex({
+          index: response.chats.length,
+          animated: false,
+        });
+      }
+    }, 0);
+
     setLoading(false);
   };
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
-        >
-          <View style={styles.container}>
-            <Header title={tripName} from={from} to={to} />
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
+      >
+        <View style={styles.container}>
+          <Header title={tripName} from={from} to={to} />
 
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
             <FlashList
+              ref={flashListRef}
               data={messages}
               inverted
-              keyExtractor={(item) => item.id.toString()}
-              estimatedItemSize={100}
+              keyExtractor={(item) => item.id}
+              estimatedItemSize={80}
               renderItem={({ item, index }) => {
                 const showDate =
                   index === messages.length - 1 ||
-                  new Date(messages[index + 1]?.time).toDateString() !== new Date(item.time).toDateString();
+                  new Date(messages[index + 1]?.time).toDateString() !==
+                  new Date(item.time).toDateString();
 
                 return (
                   <>
@@ -94,16 +106,16 @@ const ChatScreen: React.FC = () => {
                 );
               }}
               onEndReached={loadOlderMessages}
-              onEndReachedThreshold={0.3}
+              onEndReachedThreshold={0.2}
               ListFooterComponent={loading ? <ActivityIndicator /> : null}
-              showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.chatList}
+              showsVerticalScrollIndicator={false}
             />
+          </TouchableWithoutFeedback>
 
-            <ChatInput />
-          </View>
-        </KeyboardAvoidingView>
-      </TouchableWithoutFeedback>
+          <ChatInput />
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };

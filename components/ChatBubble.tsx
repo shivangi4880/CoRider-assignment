@@ -16,7 +16,7 @@ const ChatBubble: React.FC<Props> = ({ message }) => {
     .replace(/<br\s*\/?>/g, '\n')
     .replace(/Page \d+/gi, '');
 
-   return (
+  return (
     <View style={[styles.row, isSelf ? styles.right : styles.left]}>
       {!isSelf && <Image source={{ uri: message.sender.avatar || '' }} style={styles.avatar} />}
       <View style={[styles.bubble, isSelf ? styles.self : styles.other]}>

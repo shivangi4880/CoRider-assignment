@@ -1,12 +1,15 @@
 export interface Sender {
+  avatar: string;
   name: string;
+  image: string;
+  is_kyc_verified: boolean;
   self: boolean;
-  avatar?: string;
+  user_id: string;
 }
 
 export interface Message {
-  id: number;
+  id: string;
   message: string;
-  time: string;
   sender: Sender;
+  time: string;
 }

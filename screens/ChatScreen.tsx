@@ -1,6 +1,14 @@
 import { FlashList } from '@shopify/flash-list';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, Text, TouchableWithoutFeedback, View, } from 'react-native';
+import {
+  ActivityIndicator,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  Text,
+  TouchableWithoutFeedback,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { fetchChats } from '../api/chatService';
@@ -24,21 +32,19 @@ const ChatScreen: React.FC = () => {
     const loadInitial = async () => {
       setLoading(true);
       const response = await fetchChats(0);
-      setMessages(response.chats.slice(0, 7)); //initally only loaded 7 msgs
+      setMessages(response.chats.slice(0, 7)); 
       setTripName(response.name);
       setFrom(response.from);
       setTo(response.to);
       setLoading(false);
     };
-
     loadInitial();
   }, []);
 
-  // Load older messages
   const loadOlderMessages = async () => {
     if (loading || !hasMore) return;
-    setLoading(true);
 
+    setLoading(true);
     const nextPage = page + 1;
     const response = await fetchChats(nextPage);
 
@@ -48,7 +54,6 @@ const ChatScreen: React.FC = () => {
       setMessages(prev => [...prev, ...response.chats]);
       setPage(nextPage);
     }
-
     setLoading(false);
   };
 
